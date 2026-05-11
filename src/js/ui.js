@@ -7,6 +7,7 @@ export const elements = {
     uploadContainer: document.getElementById('upload-container'),
     chatContainer: document.getElementById('chat-container'),
     imageUpload: document.getElementById('image-upload'),
+    cameraUpload: document.getElementById('camera-upload'),
     chatMessages: document.getElementById('chat-messages'),
     userInput: document.getElementById('user-input'),
     sendBtn: document.getElementById('send-btn'),

@@ -8,6 +8,7 @@ import { callGemini } from './api.js';
 
 function init() {
     elements.imageUpload.addEventListener('change', handleImageSelection);
+    elements.cameraUpload.addEventListener('change', handleImageSelection);
     elements.sendBtn.addEventListener('click', handleSend);
     elements.userInput.addEventListener('keydown', (e) => e.key === 'Enter' && handleSend());
     elements.hunchBtn.addEventListener('click', handleHunch);

@@ -23,7 +23,8 @@ body {
     font-family: var(--font-sans);
     height: 100vh;
     height: 100dvh;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     display: flex;
     justify-content: center;
     background-image: 
@@ -187,6 +188,21 @@ main {
 #upload-container.active, #chat-container.active {
     display: flex;
     flex-direction: column;
+    height: 100%;
+}
+
+.upload-options {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    margin: auto;
+}
+
+@media (min-width: 400px) {
+    .upload-options {
+        grid-template-columns: 1fr 1fr;
+    }
 }
 
 /* Upload Box */
@@ -202,8 +218,9 @@ main {
     background: var(--card-bg);
     backdrop-filter: blur(12px);
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    margin: auto;
+    margin: 0;
     width: 100%;
+    min-height: 160px;
 }
 
 .upload-box:hover {
@@ -250,6 +267,7 @@ main {
 .messages-area {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 1.2rem;
