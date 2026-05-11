@@ -28,7 +28,7 @@ async function handleImageSelection(e) {
     setThinking(true, "Observing your material...", state);
     
     // Initial analysis
-    const initialPrompt = "I have uploaded an image of my work. Please analyze it and start our Socratic dialogue. Ask me a leading question to start.";
+    const initialPrompt = "I have uploaded an image of my work. Please briefly explain what you see to confirm your understanding, and then ask me a leading question to start our Socratic dialogue.";
     await callGemini(initialPrompt, state, true);
 }
 
