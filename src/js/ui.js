@@ -1,5 +1,5 @@
 /**
- * UI Manipulation & Elements
+ * UI Manipulations & Elements
  */
 export const elements = {
     orb: document.getElementById('ghost-orb'),
