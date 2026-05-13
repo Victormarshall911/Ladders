@@ -1,5 +1,5 @@
 /**
- * Ladders: Socratic AI Tutor
+ * Ladders: Socratic AI Tutor By Victor
  * Entry Point
  */
 import { state } from './state.js';

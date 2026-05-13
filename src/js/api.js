@@ -1,5 +1,5 @@
 /**
- * API Logic for Gemini
+ * API Logic for Gemini model
  */
 import { addMessage, setThinking, updateProgress } from './ui.js';
 
