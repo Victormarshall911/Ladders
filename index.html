@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ladders | Socratic AI Tutor</title>
+    <meta name="description" content="Ladders — A Socratic AI tutor that guides you to understanding through dialogue, not answers.">
     <link rel="stylesheet" href="src/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -65,12 +66,28 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Quiz State -->
+                <div id="quiz-container">
+                    <div class="quiz-header">
+                        <div class="quiz-title-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <h2 class="quiz-title">Trial of Knowledge</h2>
+                    </div>
+                    <div id="quiz-loading" class="quiz-loading" style="display: none;">
+                        <div class="quiz-spinner"></div>
+                        <p>The spirits are preparing your trial...</p>
+                    </div>
+                    <div id="quiz-content"></div>
+                </div>
             </section>
         </main>
 
         <!-- Controls -->
         <footer>
             <button id="hunch-btn" class="secondary-btn">Give me a Hunch</button>
+            <button id="quiz-btn" class="secondary-btn quiz-btn">Take the Quiz</button>
         </footer>
     </div>
     <script src="src/js/main.js" type="module"></script>
