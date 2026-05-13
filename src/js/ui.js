@@ -13,6 +13,7 @@ export const elements = {
     userInput: document.getElementById('user-input'),
     sendBtn: document.getElementById('send-btn'),
     hunchBtn: document.getElementById('hunch-btn'),
+    themeToggle: document.getElementById('theme-toggle'),
     progressBar: document.getElementById('progress-bar'),
 
     // Quiz elements

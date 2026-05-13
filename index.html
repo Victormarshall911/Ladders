@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="src/css/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,500;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app">
@@ -18,13 +18,25 @@
         <header id="top-bar">
             <div class="logo-mark">
                 <img src="/logo.png" alt="Ladders logo" class="logo-img">
-                <span class="logo-text">Ladders</span>
-            </div>
-            <div class="mastery-pill">
-                <span class="mastery-label">Mastery</span>
-                <div class="progress-track">
-                    <div id="progress-bar" class="progress-fill" style="width: 10%;"></div>
+                <div class="logo-text-group">
+                    <span class="logo-text">Ladders</span>
+                    <span class="logo-sub">Socratic Ghost</span>
                 </div>
+            </div>
+
+            <div class="header-right">
+                <div class="mastery-pill">
+                    <span class="mastery-label">Mastery</span>
+                    <div class="progress-track">
+                        <div id="progress-bar" class="progress-fill" style="width: 10%;"></div>
+                    </div>
+                </div>
+                <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle theme">
+                    <!-- Sun icon (shown in dark mode) -->
+                    <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                    <!-- Moon icon (shown in light mode) -->
+                    <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
             </div>
         </header>
 
@@ -36,7 +48,7 @@
                 <div class="orb-wrap">
                     <div id="ghost-orb" class="orb idle"></div>
                 </div>
-                <div id="status-text" class="status-text">I am listening...</div>
+                <div id="status-text" class="status-text">I am listening…</div>
                 <div id="hint-chip" class="hint-chip" aria-label="Current hint level"></div>
             </section>
 
@@ -45,23 +57,26 @@
 
                 <!-- Upload State -->
                 <div id="upload-container" class="active">
-                    <p class="upload-prompt">Share what you're working on</p>
+                    <div class="upload-hero">
+                        <h1 class="upload-headline">What are you working on?</h1>
+                        <p class="upload-tagline">Share your notes or homework and the Ghost will guide you — not give you the answer.</p>
+                    </div>
                     <div class="upload-options">
                         <label for="image-upload" class="upload-box" id="label-gallery">
-                            <div class="upload-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            <div class="upload-icon-wrap">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                             </div>
-                            <span class="upload-title">Gallery</span>
-                            <span class="upload-sub">Upload notes or homework</span>
+                            <span class="upload-title">Upload Image</span>
+                            <span class="upload-sub">Notes, textbook, whiteboard</span>
                             <input type="file" id="image-upload" accept="image/*" hidden>
                         </label>
 
                         <label for="camera-upload" class="upload-box" id="label-camera">
-                            <div class="upload-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            <div class="upload-icon-wrap">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                             </div>
-                            <span class="upload-title">Camera</span>
-                            <span class="upload-sub">Snap a photo</span>
+                            <span class="upload-title">Use Camera</span>
+                            <span class="upload-sub">Snap a quick photo</span>
                             <input type="file" id="camera-upload" accept="image/*" capture="environment" hidden>
                         </label>
                     </div>
@@ -71,9 +86,9 @@
                 <div id="chat-container">
                     <div id="chat-messages" class="messages-area"></div>
                     <div class="input-row">
-                        <input type="text" id="user-input" placeholder="Reply to the Ghost..." autocomplete="off">
+                        <input type="text" id="user-input" placeholder="Reply to the Ghost…" autocomplete="off">
                         <button id="send-btn" class="send-btn" aria-label="Send">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
                         </button>
                     </div>
                 </div>
@@ -82,13 +97,13 @@
                 <div id="quiz-container">
                     <div class="quiz-header">
                         <div class="quiz-title-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         </div>
                         <h2 class="quiz-title">Trial of Knowledge</h2>
                     </div>
                     <div id="quiz-loading" class="quiz-loading" style="display: none;">
                         <div class="quiz-spinner"></div>
-                        <p>Preparing your trial...</p>
+                        <p>Preparing your trial…</p>
                     </div>
                     <div id="quiz-content"></div>
                 </div>
@@ -99,12 +114,12 @@
         <!-- ── Bottom Actions ── -->
         <footer id="bottom-bar">
             <button id="hunch-btn" class="action-btn" aria-label="Get a hint">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                Hunch
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                Give me a Hunch
             </button>
             <button id="quiz-btn" class="action-btn quiz-btn" aria-label="Take the quiz">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Quiz
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Take the Quiz
             </button>
         </footer>
 

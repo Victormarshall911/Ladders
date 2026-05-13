@@ -5,8 +5,8 @@
 import { state } from './state.js';
 import {
     elements, addMessage, addImageMessage, setThinking,
-    transitionToChat, transitionToQuiz, showQuizButton,
-    setQuizLoading, updateHintChip
+    transitionToChat, transitionToQuiz, transitionBackToChat,
+    showQuizButton, setQuizLoading, updateHintChip
 } from './ui.js';
 import { callGemini } from './api.js';
 import { generateQuiz, renderQuiz } from './quiz.js';
@@ -22,6 +22,21 @@ function init() {
     elements.userInput.addEventListener('keydown', (e) => e.key === 'Enter' && handleSend());
     elements.hunchBtn.addEventListener('click', handleHunch);
     elements.quizBtn.addEventListener('click', handleQuiz);
+
+    // ── Theme toggle ──────────────────────────────────────────────────────────
+    const root = document.documentElement;
+
+    // Restore saved theme preference (default: light)
+    const savedTheme = localStorage.getItem('ladders-theme') || 'light';
+    root.setAttribute('data-theme', savedTheme);
+
+    elements.themeToggle.addEventListener('click', () => {
+        const current = root.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('ladders-theme', next);
+    });
+    // ─────────────────────────────────────────────────────────────────────────
 
     addMessage('ghost', "Greetings, seeker. Show me what you are working on, and we shall find the path together.");
 }
@@ -114,12 +129,11 @@ async function handleQuiz() {
     } else {
         elements.quizContent.innerHTML = `
             <div class="quiz-error">
-                <p>The ethereal realm could not conjure a quiz. Please continue the dialogue and try again.</p>
+                <p>The spirits could not conjure a quiz. Continue the dialogue and try again.</p>
                 <button class="secondary-btn quiz-error-back">Return to Chat</button>
             </div>
         `;
         elements.quizContent.querySelector('.quiz-error-back').addEventListener('click', () => {
-            const { transitionBackToChat } = require('./ui.js');
             transitionBackToChat();
             state.currentScreen = 'chat';
         });
