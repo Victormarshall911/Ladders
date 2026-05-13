@@ -31,7 +31,7 @@ Ladders is a high-performance, aesthetically-driven Socratic AI tutor designed t
 
 1. **Clone the repository**:
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/Victormarshall911/Ladders
    cd Ladders
    ```
 
