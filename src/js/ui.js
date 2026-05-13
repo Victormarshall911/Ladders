@@ -32,6 +32,24 @@ export function setThinking(isThinking, text, state) {
 export function transitionToChat() {
     elements.uploadContainer.classList.remove('active');
     elements.chatContainer.classList.add('active');
+
+    // Compact the orb to give messages more room
+    const orbSection = document.getElementById('orb-section');
+    const orbWrap = orbSection?.querySelector('.orb-wrap');
+    const orb = elements.orb;
+
+    if (orbSection) {
+        orbSection.style.padding = '10px 0 6px';
+        orbSection.style.gap = '6px';
+    }
+    if (orbWrap) {
+        orbWrap.style.width = '52px';
+        orbWrap.style.height = '52px';
+    }
+    if (orb) {
+        orb.style.width = '36px';
+        orb.style.height = '36px';
+    }
 }
 
 export function transitionToQuiz() {

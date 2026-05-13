@@ -176,8 +176,6 @@ async function fetchWithRetry(url, options, retries = CONFIG.MAX_RETRIES) {
     }
 }
 
-// ─── Main Export ─────────────────────────────────────────────────────────────
-
 /**
  * Call the Gemini API with a dynamically assembled system prompt
  * that reflects the current student state.
@@ -196,85 +194,123 @@ export async function callGemini(prompt, state, isFirst = false) {
         return null;
     }
 
-    try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${CONFIG.API_KEY}`;
+    const MAX_RATE_RETRIES = 3;
 
-        // Build conversation history
-        const contents = [];
-        state.history.forEach(item => {
-            contents.push({
-                role: item.role === 'ghost' ? 'model' : 'user',
-                parts: [{ text: item.text }]
+    for (let rateAttempt = 0; rateAttempt <= MAX_RATE_RETRIES; rateAttempt++) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.MODEL}:generateContent?key=${CONFIG.API_KEY}`;
+
+            // Build conversation history
+            const contents = [];
+            state.history.forEach(item => {
+                contents.push({
+                    role: item.role === 'ghost' ? 'model' : 'user',
+                    parts: [{ text: item.text }]
+                });
             });
-        });
 
-        // Build current turn parts
-        const parts = [{ text: prompt }];
-        if (isFirst && state.currentImageBase64) {
-            parts.push({
-                inline_data: {
-                    mime_type: "image/jpeg",
-                    data: state.currentImageBase64.split(',')[1]
+            // Build current turn parts
+            const parts = [{ text: prompt }];
+            if (isFirst && state.currentImageBase64) {
+                parts.push({
+                    inline_data: {
+                        mime_type: "image/jpeg",
+                        data: state.currentImageBase64.split(',')[1]
+                    }
+                });
+            }
+            contents.push({ role: 'user', parts });
+
+            // Assemble dynamic system prompt (personalized for this exact student state)
+            const systemPrompt = buildSystemPrompt(state);
+
+            const fetchOptions = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents,
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 600,
+                    }
+                })
+            };
+
+            const data = await fetchWithRetry(url, fetchOptions);
+
+            // ── Rate Limit Detection ──────────────────────────────────────────
+            if (data.error) {
+                const errMsg = data.error.message || '';
+                const errStatus = data.error.status || '';
+                const isRateLimit = errStatus === 'RESOURCE_EXHAUSTED'
+                    || errMsg.includes('Quota exceeded')
+                    || errMsg.includes('rate limit')
+                    || errMsg.includes('429');
+
+                if (isRateLimit && rateAttempt < MAX_RATE_RETRIES) {
+                    // Parse delay from error message (e.g. "retry in 6.634429751s")
+                    const delayMatch = errMsg.match(/retry\s+in\s+([\d.]+)s/i);
+                    const waitSec = delayMatch ? Math.ceil(parseFloat(delayMatch[1])) + 1 : 10;
+
+                    console.warn(`Rate limited. Waiting ${waitSec}s before retry ${rateAttempt + 1}/${MAX_RATE_RETRIES}…`);
+                    setThinking(true, `Gathering energy… ${waitSec}s`, state);
+
+                    // Countdown status updates
+                    for (let s = waitSec; s > 0; s--) {
+                        await new Promise(res => setTimeout(res, 1000));
+                        setThinking(true, `Gathering energy… ${s - 1}s`, state);
+                    }
+
+                    setThinking(true, "Reaching out again…", state);
+                    continue; // retry the loop
                 }
-            });
+
+                throw new Error(data.error.message);
+            }
+            // ──────────────────────────────────────────────────────────────────
+
+            const candidate = data.candidates?.[0];
+            if (!candidate) throw new Error("No response candidate returned from the API.");
+
+            const finishReason = candidate.finishReason;
+            let responseText = candidate.content?.parts?.[0]?.text ?? '';
+
+            if (finishReason === 'MAX_TOKENS' && responseText) {
+                responseText += '… *(my thoughts were cut short — please ask me to continue)*';
+            } else if (!responseText) {
+                throw new Error(`Unexpected finish reason: ${finishReason ?? 'unknown'}`);
+            }
+
+            addMessage('ghost', responseText);
+            state.history.push({ role: 'user', text: prompt });
+            state.history.push({ role: 'ghost', text: responseText });
+
+            updateProgress(5, state);
+            setThinking(false, "I am listening…", state);
+
+            // Return response text so callers (main.js) can post-process it
+            return responseText;
+
+        } catch (error) {
+            console.error('Gemini API error:', error);
+
+            const isTimeout = error.name === 'AbortError';
+            const isNetwork = error instanceof TypeError;
+
+            const userMessage =
+                isTimeout ? "The ethereal connection timed out. Please check your internet and try again." :
+                isNetwork ? "The spirit realm is unreachable. Please check your connection and resend your message." :
+                "A disturbance rippled through the realm. Please wait a moment and try again.";
+
+            addMessage('ghost', userMessage);
+            setThinking(false, "Connection lost — ready to retry", state);
+            return null;
         }
-        contents.push({ role: 'user', parts });
-
-        // Assemble dynamic system prompt (personalized for this exact student state)
-        const systemPrompt = buildSystemPrompt(state);
-
-        const fetchOptions = {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents,
-                system_instruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 600,
-                }
-            })
-        };
-
-        const data = await fetchWithRetry(url, fetchOptions);
-
-        if (data.error) throw new Error(data.error.message);
-
-        const candidate = data.candidates?.[0];
-        if (!candidate) throw new Error("No response candidate returned from the API.");
-
-        const finishReason = candidate.finishReason;
-        let responseText = candidate.content?.parts?.[0]?.text ?? '';
-
-        if (finishReason === 'MAX_TOKENS' && responseText) {
-            responseText += '… *(my thoughts were cut short — please ask me to continue)*';
-        } else if (!responseText) {
-            throw new Error(`Unexpected finish reason: ${finishReason ?? 'unknown'}`);
-        }
-
-        addMessage('ghost', responseText);
-        state.history.push({ role: 'user', text: prompt });
-        state.history.push({ role: 'ghost', text: responseText });
-
-        updateProgress(5, state);
-        setThinking(false, "I am listening...", state);
-
-        // Return response text so callers (main.js) can post-process it
-        return responseText;
-
-    } catch (error) {
-        console.error('Gemini API error:', error);
-
-        const isTimeout = error.name === 'AbortError';
-        const isNetwork = error instanceof TypeError;
-
-        const userMessage =
-            isTimeout ? "The ethereal connection timed out. Please check your internet and try again." :
-            isNetwork ? "The spirit realm is unreachable. Please check your connection and resend your message." :
-            `A disturbance rippled through the realm. ${error.message}`;
-
-        addMessage('ghost', userMessage);
-        setThinking(false, "Connection lost — ready to retry", state);
-        return null;
     }
+
+    // If we exhausted all rate-limit retries
+    addMessage('ghost', "The spirits are resting — too many seekers at once. Please wait a minute and try again.");
+    setThinking(false, "Cooling down — try again soon", state);
+    return null;
 }

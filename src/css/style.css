@@ -127,11 +127,22 @@ body {
 main { flex: 1; display: flex; flex-direction: column; align-items: center; overflow: hidden; min-height: 0; padding: 0 20px; }
 
 /* ── Orb Section ── */
-#orb-section { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 0 18px; flex-shrink: 0; }
+#orb-section {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; padding: 24px 0 18px; flex-shrink: 0;
+    transition: padding 0.4s ease, gap 0.4s ease;
+}
+
+/* Collapse orb when chat is visible */
+#chat-container.active ~ .orb-collapse-hint,
+.orb-compact #orb-section {
+    padding: 10px 0 6px; gap: 6px;
+}
 
 .orb-wrap {
     position: relative; width: 90px; height: 90px;
     display: flex; align-items: center; justify-content: center;
+    transition: width 0.4s ease, height 0.4s ease;
 }
 
 .orb-wrap::before,.orb-wrap::after {
@@ -166,7 +177,17 @@ main { flex: 1; display: flex; flex-direction: column; align-items: center; over
 }
 @keyframes spin-ring { to { transform: rotate(360deg); } }
 
-.status-text { font-size: 12px; font-weight: 500; color: var(--text-3); letter-spacing: 0.02em; font-style: italic; }
+.status-text {
+    font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 0.06em;
+    font-style: italic; text-transform: lowercase;
+    animation: status-glow 2.5s ease-in-out infinite;
+    text-shadow: 0 0 8px var(--accent-glow);
+}
+
+@keyframes status-glow {
+    0%, 100% { opacity: 0.6; text-shadow: 0 0 6px var(--accent-glow); letter-spacing: 0.06em; }
+    50%      { opacity: 1;   text-shadow: 0 0 18px var(--accent-glow), 0 0 40px rgba(124,58,237,0.08); letter-spacing: 0.10em; }
+}
 
 /* ── Hint Chip ── */
 .hint-chip { display: flex; align-items: center; gap: 4px; opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity 0.3s ease, transform 0.3s ease; height: 18px; }
@@ -223,54 +244,104 @@ main { flex: 1; display: flex; flex-direction: column; align-items: center; over
 .upload-sub   { font-size: 11px; color: var(--text-3); text-align: center; }
 
 /* ── Chat ── */
-#chat-container { display: none; flex-direction: column; flex: 1; min-height: 0; }
+#chat-container {
+    display: none; flex-direction: column; flex: 1; min-height: 0;
+    animation: chat-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
 #chat-container.active { display: flex; }
 
+@keyframes chat-enter {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .messages-area {
-    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
-    padding: 12px 0 16px;
-    scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent;
+    flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;
+    padding: 16px 4px 20px;
+    scrollbar-width: thin; scrollbar-color: var(--accent-dim) transparent;
 }
 .messages-area::-webkit-scrollbar { width: 3px; }
 .messages-area::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 10px; }
 
-/* Ghost messages — card style, serif font */
+/* Ghost messages — premium card style, serif font */
 .message.ghost {
     align-self: stretch;
     background: var(--surface);
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 0 var(--r-md) var(--r-md) 0;
-    padding: 14px 16px;
-    margin: 6px 0;
-    box-shadow: var(--shadow-sm);
+    border-radius: 0 var(--r-lg) var(--r-lg) 0;
+    padding: 16px 18px;
+    margin: 8px 0;
+    box-shadow: var(--shadow-card), 0 0 0 1px var(--accent-dim);
     font-family: var(--font-serif);
     font-size: 1.02rem;
     color: var(--text-1);
-    line-height: 1.7;
-    animation: msg-in 0.28s ease-out;
+    line-height: 1.75;
+    animation: ghost-in 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.message.ghost:hover {
+    box-shadow: var(--shadow-md), 0 0 0 1px var(--accent-glow);
+    border-left-color: var(--accent-2);
 }
 .message.ghost::before {
-    content: 'The Ghost';
+    content: '✦ The Ghost';
     display: block;
     font-family: var(--font);
     font-size: 10px; font-weight: 700;
-    color: var(--accent); letter-spacing: 0.08em;
-    text-transform: uppercase; margin-bottom: 7px; opacity: 0.8;
+    color: var(--accent); letter-spacing: 0.10em;
+    text-transform: uppercase; margin-bottom: 8px;
+    opacity: 0.9;
+}
+/* Subtle accent line glow on ghost messages — contained within card */
+.message.ghost::after {
+    content: '';
+    position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+    background: var(--accent);
+    border-radius: var(--r-full);
+    box-shadow: 0 0 8px var(--accent-glow);
+    opacity: 0.7;
 }
 
-/* User messages — warm pill */
+@keyframes ghost-in {
+    from { opacity: 0; transform: translateX(-12px) scale(0.98); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* User messages — premium gradient pill */
 .message.user {
     align-self: flex-end;
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
     color: #fff;
     border-radius: var(--r-xl) var(--r-xl) 6px var(--r-xl);
-    padding: 11px 16px;
+    padding: 12px 18px;
     max-width: 76%;
-    font-size: 14px; line-height: 1.6;
-    box-shadow: 0 4px 14px var(--accent-glow);
-    animation: msg-in 0.22s ease-out;
+    font-size: 14px; line-height: 1.65;
+    box-shadow: 0 4px 16px var(--accent-glow), 0 1px 3px rgba(0,0,0,0.1);
+    animation: user-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    isolation: isolate;
+}
+/* Subtle shimmer on user messages — contained via clip-path so text is never cut */
+.message.user::before {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+    animation: msg-shimmer 3s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+    overflow: hidden;
+}
+
+@keyframes user-in {
+    from { opacity: 0; transform: translateX(12px) scale(0.95); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes msg-shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50%      { transform: translateX(100%); }
 }
 
 @keyframes msg-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -281,44 +352,82 @@ main { flex: 1; display: flex; flex-direction: column; align-items: center; over
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--r-xl) var(--r-xl) 6px var(--r-xl);
-    padding: 10px; max-width: 76%;
+    padding: 6px; max-width: 76%;
     display: flex; flex-direction: column; gap: 6px;
-    box-shadow: var(--shadow-sm); animation: msg-in 0.22s ease-out;
+    box-shadow: var(--shadow-card);
+    animation: user-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-.message-image { width: 100%; max-height: 180px; object-fit: cover; border-radius: var(--r-md); }
-.image-label { font-size: 11px; color: var(--text-3); }
+.message.image-message:hover {
+    transform: scale(1.01);
+    box-shadow: var(--shadow-md);
+}
+.message-image {
+    width: 100%; max-height: 360px; object-fit: contain;
+    border-radius: calc(var(--r-xl) - 4px) calc(var(--r-xl) - 4px) var(--r-sm) calc(var(--r-xl) - 4px);
+    transition: filter 0.3s ease;
+}
+.message.image-message:hover .message-image { filter: brightness(1.05); }
+.image-label { font-size: 11px; color: var(--text-3); padding: 2px 8px 6px; }
 
 /* ── Input Row ── */
 .input-row {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 0 4px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 4px 8px;
     border-top: 1px solid var(--border);
+    position: relative;
+}
+/* Soft glow above input row */
+.input-row::before {
+    content: '';
+    position: absolute; top: -12px; left: 10%; right: 10%; height: 12px;
+    background: radial-gradient(ellipse at 50% 100%, var(--accent-dim), transparent 70%);
+    pointer-events: none;
 }
 
 #user-input {
     flex: 1;
     background: var(--surface);
     border: 1.5px solid var(--border);
-    border-radius: var(--r-md);
+    border-radius: var(--r-lg);
     color: var(--text-1);
     font-family: var(--font); font-size: 14px;
-    padding: 10px 14px; outline: none;
-    box-shadow: var(--shadow-sm);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    padding: 12px 18px; outline: none;
+    box-shadow: var(--shadow-sm), inset 0 1px 3px rgba(0,0,0,0.03);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
-#user-input::placeholder { color: var(--text-3); }
-#user-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+#user-input::placeholder { color: var(--text-3); font-style: italic; letter-spacing: 0.01em; }
+#user-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim), 0 0 20px var(--accent-dim), var(--shadow-sm);
+    background: var(--surface-2);
+}
 
 .send-btn {
-    width: 40px; height: 40px; border-radius: var(--r-md);
+    width: 42px; height: 42px; border-radius: var(--r-lg);
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     border: none; color: #fff;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; flex-shrink: 0;
-    box-shadow: 0 4px 12px var(--accent-glow);
-    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease;
+    box-shadow: 0 4px 14px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
 }
-.send-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px var(--accent-glow); }
+.send-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.25), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+.send-btn:hover {
+    transform: scale(1.12) translateY(-1px);
+    box-shadow: 0 8px 24px var(--accent-glow), 0 0 0 1px rgba(255,255,255,0.15) inset;
+}
+.send-btn:hover::after { opacity: 1; }
+.send-btn:active { transform: scale(0.95); }
 
 /* ── Bottom Bar ── */
 #bottom-bar {
@@ -422,3 +531,73 @@ main { flex: 1; display: flex; flex-direction: column; align-items: center; over
 .results-actions { display: flex; gap: 10px; justify-content: center; padding-bottom: 8px; }
 
 .quiz-error { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; color:var(--text-2); font-family:var(--font-serif); font-style:italic; font-size:1rem; padding:20px; }
+
+/* ══════════════════════════════════════════════════
+   Dark Mode — Chat Enhancements
+   Deeper glows, more dramatic presence
+══════════════════════════════════════════════════ */
+
+/* Ambient glow behind orb section in dark mode */
+[data-theme="dark"] #orb-section::after {
+    content: '';
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+    animation: ambient-pulse 4s ease-in-out infinite;
+}
+[data-theme="dark"] #orb-section { position: relative; }
+
+@keyframes ambient-pulse {
+    0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+    50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.15); }
+}
+
+/* Dark mode: ghost messages get a glowing left border */
+[data-theme="dark"] .message.ghost {
+    background: rgba(30, 25, 50, 0.85);
+    border-color: rgba(167, 139, 250, 0.15);
+    box-shadow: var(--shadow-card), 0 0 0 1px rgba(167, 139, 250, 0.08), 0 0 30px rgba(167,139,250,0.05);
+}
+[data-theme="dark"] .message.ghost:hover {
+    box-shadow: var(--shadow-md), 0 0 0 1px rgba(167, 139, 250, 0.2), 0 0 40px rgba(167,139,250,0.08);
+}
+[data-theme="dark"] .message.ghost::after {
+    box-shadow: 0 0 14px rgba(167,139,250,0.4), 0 0 30px rgba(167,139,250,0.15);
+}
+
+/* Dark mode: user message glow */
+[data-theme="dark"] .message.user {
+    box-shadow: 0 4px 20px rgba(167,139,250,0.25), 0 0 40px rgba(167,139,250,0.08);
+}
+
+/* Dark mode: input field glow on focus */
+[data-theme="dark"] #user-input:focus {
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.15), 0 0 30px rgba(167,139,250,0.1), var(--shadow-sm);
+}
+
+/* Dark mode: more dramatic status text glow */
+[data-theme="dark"] .status-text {
+    text-shadow: 0 0 12px var(--accent-glow), 0 0 30px rgba(167,139,250,0.15);
+}
+
+/* Dark mode: send button glow */
+[data-theme="dark"] .send-btn {
+    box-shadow: 0 4px 16px rgba(167,139,250,0.3), 0 0 40px rgba(167,139,250,0.1), 0 0 0 1px rgba(255,255,255,0.06) inset;
+}
+[data-theme="dark"] .send-btn:hover {
+    box-shadow: 0 8px 28px rgba(167,139,250,0.35), 0 0 50px rgba(167,139,250,0.15), 0 0 0 1px rgba(255,255,255,0.1) inset;
+}
+
+/* Dark mode: scrollbar blends better */
+[data-theme="dark"] .messages-area::-webkit-scrollbar-thumb {
+    background: rgba(167, 139, 250, 0.15);
+}
+
+/* Dark mode: image messages get a subtle glow */
+[data-theme="dark"] .message.image-message {
+    border-color: rgba(167, 139, 250, 0.12);
+    box-shadow: var(--shadow-card), 0 0 20px rgba(167,139,250,0.05);
+}
