@@ -4,6 +4,7 @@
 export const elements = {
     orb: document.getElementById('ghost-orb'),
     statusText: document.getElementById('status-text'),
+    hintChip: document.getElementById('hint-chip'),
     uploadContainer: document.getElementById('upload-container'),
     chatContainer: document.getElementById('chat-container'),
     imageUpload: document.getElementById('image-upload'),
@@ -59,7 +60,7 @@ export function addImageMessage(imageSrc) {
     const div = document.createElement('div');
     div.className = 'message user image-message';
 
-    const img = document.createElement('img');
+    const img = document.createElement('img')
     img.src = imageSrc;
     img.className = 'message-image';
     img.alt = 'Uploaded study material';
@@ -92,4 +93,30 @@ export function setQuizLoading(isLoading) {
 export function updateProgress(amt, state) {
     state.mastery = Math.min(100, state.mastery + amt);
     elements.progressBar.style.width = `${state.mastery}%`;
+}
+
+/**
+ * Update the hint level chip beneath the orb.
+ * Shows filled/empty dots representing current hint depth (0–5).
+ * Hidden when hintLevel === 0.
+ *
+ * @param {object} state - Full app state
+ */
+export function updateHintChip(state) {
+    const chip = elements.hintChip;
+    if (!chip) return;
+
+    const level = state.student.hintLevel;
+
+    if (level === 0) {
+        chip.classList.remove('visible');
+        return;
+    }
+
+    const dots = Array.from({ length: 5 }, (_, i) =>
+        `<span class="hint-dot ${i < level ? 'filled' : ''}"></span>`
+    ).join('');
+
+    chip.innerHTML = `${dots}<span class="hint-label">Hint ${level}/5</span>`;
+    chip.classList.add('visible');
 }

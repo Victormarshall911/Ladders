@@ -1,11 +1,19 @@
 /**
  * Ladders: Socratic AI Tutor By Victor
- * Entry Point
+ * Entry Point — wires the pedagogy engine into every send/response cycle
  */
 import { state } from './state.js';
-import { elements, addMessage, addImageMessage, setThinking, transitionToChat, transitionToQuiz, showQuizButton, setQuizLoading } from './ui.js';
+import {
+    elements, addMessage, addImageMessage, setThinking,
+    transitionToChat, transitionToQuiz, showQuizButton,
+    setQuizLoading, updateHintChip
+} from './ui.js';
 import { callGemini } from './api.js';
 import { generateQuiz, renderQuiz } from './quiz.js';
+import {
+    analyzeMessage, applyAnalysis,
+    markReflectionDelivered, extractTopic
+} from './engine.js';
 
 function init() {
     elements.imageUpload.addEventListener('change', handleImageSelection);
@@ -14,7 +22,7 @@ function init() {
     elements.userInput.addEventListener('keydown', (e) => e.key === 'Enter' && handleSend());
     elements.hunchBtn.addEventListener('click', handleHunch);
     elements.quizBtn.addEventListener('click', handleQuiz);
-    
+
     addMessage('ghost', "Greetings, seeker. Show me what you are working on, and we shall find the path together.");
 }
 
@@ -22,21 +30,19 @@ async function handleImageSelection(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Convert image to base64
     state.currentImageBase64 = await fileToBase64(file);
-    
-    // Show the image in chat before transitioning
     addImageMessage(state.currentImageBase64);
-    
     transitionToChat();
-    
     setThinking(true, "Observing your material...", state);
-    
-    // Initial analysis
+
     const initialPrompt = "I have uploaded an image of my work. Please briefly explain what you see to confirm your understanding, and then ask me a leading question to start our Socratic dialogue.";
-    await callGemini(initialPrompt, state, true);
-    
-    // After first exchange, check if we should show quiz button
+    const response = await callGemini(initialPrompt, state, true);
+
+    // Extract topic from the ghost's first response for the runtime context
+    if (response) {
+        extractTopic(response, state);
+    }
+
     checkQuizAvailability();
 }
 
@@ -46,32 +52,60 @@ async function handleSend() {
 
     elements.userInput.value = '';
     addMessage('user', text);
-    
-    setThinking(true, "Reflecting...", state);
-    await callGemini(text, state);
-    
-    // Check if quiz should become available
+
+    // ── Pedagogy Engine: classify and update student state BEFORE calling API ──
+    const analysis = analyzeMessage(text, state);
+    applyAnalysis(analysis, state);
+    updateHintChip(state);
+    // ──────────────────────────────────────────────────────────────────────────
+
+    // Pick a thinking status that reflects what the ghost is doing
+    const thinkingLabel =
+        analysis.type === 'demand'      ? "Redirecting your path…" :
+        analysis.type === 'frustrated'  ? "Searching for a clearer way…" :
+        analysis.type === 'correct_with_reasoning' ? "Acknowledging your insight…" :
+        "Reflecting…";
+
+    setThinking(true, thinkingLabel, state);
+    const response = await callGemini(text, state);
+
+    // ── After response: clear reflection flag, update topic if not yet set ──
+    if (response) {
+        markReflectionDelivered(state);
+        if (!state.student.topic) extractTopic(response, state);
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     checkQuizAvailability();
 }
 
 async function handleHunch() {
     if (state.isThinking) return;
+
+    // A hunch request is a mild hint escalation
+    state.student.hintLevel = Math.min(5, state.student.hintLevel + 1);
+    updateHintChip(state);
+
     setThinking(true, "Manifesting a hunch...", state);
-    await callGemini("I'm stuck. Can you give me a subtle hint or a 'hunch' to nudge me forward?", state);
-    
+    const response = await callGemini(
+        "I'm stuck. Can you give me a subtle hint or a 'hunch' to nudge me forward?",
+        state
+    );
+
+    if (response) markReflectionDelivered(state);
     checkQuizAvailability();
 }
 
 async function handleQuiz() {
     if (state.isThinking) return;
-    
+
     state.currentScreen = 'quiz';
     transitionToQuiz();
     setQuizLoading(true);
     setThinking(true, "Conjuring your trial...", state);
 
     const success = await generateQuiz(state);
-    
+
     setThinking(false, "The trial awaits...", state);
     setQuizLoading(false);
 
@@ -93,7 +127,7 @@ async function handleQuiz() {
 }
 
 /**
- * Show the quiz button after the user has had at least 3 exchanges
+ * Show the quiz button after the user has had at least 2 exchanges
  */
 function checkQuizAvailability() {
     const userMessages = state.history.filter(h => h.role !== 'ghost').length;
