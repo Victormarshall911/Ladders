@@ -1,6 +1,6 @@
 /**
  * API Logic for Gemini model
- * System prompt is assembled dynamically per-call using runtime student state.
+ * System prompt is assembled dynamically per-call using runtime students states.
  */
 import { addMessage, setThinking, updateProgress } from './ui.js';
 import { buildRuntimeContext, getHintInstruction } from './engine.js';
