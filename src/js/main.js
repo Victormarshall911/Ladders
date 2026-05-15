@@ -8,7 +8,7 @@ import {
     transitionToChat, transitionToQuiz, transitionBackToChat,
     showQuizButton, setQuizLoading, updateHintChip
 } from './ui.js';
-import { callGemini } from './api.js';
+import { callAI } from './api.js';
 import { generateQuiz, renderQuiz } from './quiz.js';
 import {
     analyzeMessage, applyAnalysis,
@@ -51,7 +51,7 @@ async function handleImageSelection(e) {
     setThinking(true, "Observing your material...", state);
 
     const initialPrompt = "I have uploaded an image of my work. Please briefly explain what you see to confirm your understanding, and then ask me a leading question to start our Socratic dialogue.";
-    const response = await callGemini(initialPrompt, state, true);
+    const response = await callAI(initialPrompt, state, true);
 
     // Extract topic from the ghost's first response for the runtime context
     if (response) {
@@ -82,7 +82,7 @@ async function handleSend() {
         "Reflecting…";
 
     setThinking(true, thinkingLabel, state);
-    const response = await callGemini(text, state);
+    const response = await callAI(text, state);
 
     // ── After response: clear reflection flag, update topic if not yet set ──
     if (response) {
@@ -102,7 +102,7 @@ async function handleHunch() {
     updateHintChip(state);
 
     setThinking(true, "Manifesting a hunch...", state);
-    const response = await callGemini(
+    const response = await callAI(
         "I'm stuck. Can you give me a subtle hint or a 'hunch' to nudge me forward?",
         state
     );

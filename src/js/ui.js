@@ -68,11 +68,20 @@ export function transitionBackToChat() {
 }
 
 export function addMessage(sender, text) {
+    if (!text || text.trim() === "") {
+        if (sender === 'ghost') text = "Thinking...";
+        else return; // Don't add empty user messages
+    }
+
     const div = document.createElement('div');
     div.className = `message ${sender}`;
     div.textContent = text;
     elements.chatMessages.appendChild(div);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    
+    // Smooth scroll to bottom
+    setTimeout(() => {
+        div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
 }
 
 export function addImageMessage(imageSrc) {

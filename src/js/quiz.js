@@ -1,17 +1,19 @@
 /**
  * Quiz Module — Generation, Rendering, and Grading
+ * Uses OpenRouter (OpenAI-compatible) API
  */
 import { elements, setThinking, transitionToQuiz, transitionBackToChat } from './ui.js';
 import { updateProgress } from './ui.js';
 
 const QUIZ_CONFIG = {
-    API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
-    MODEL: import.meta.env.VITE_GEMINI_MODEL || 'gemini-1.5-flash',
+    API_KEY: import.meta.env.VITE_OPENROUTER_API_KEY,
+    MODEL: import.meta.env.VITE_AI_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
+    API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     NUM_QUESTIONS: 5
 };
 
 /**
- * Generate quiz questions from conversation history via Gemini
+ * Generate quiz questions from conversation history via OpenRouter
  */
 export async function generateQuiz(state) {
     if (!QUIZ_CONFIG.API_KEY) return;
@@ -50,27 +52,31 @@ RULES:
 ]`;
 
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${QUIZ_CONFIG.MODEL}:generateContent?key=${QUIZ_CONFIG.API_KEY}`;
-
-        const response = await fetch(url, {
+        const response = await fetch(QUIZ_CONFIG.API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Authorization': `Bearer ${QUIZ_CONFIG.API_KEY}`,
+                'HTTP-Referer': 'http://localhost:5173',
+                'X-Title': 'Ladders AI',
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: quizPrompt }] }],
-                generationConfig: {
-                    temperature: 0.4,
-                    maxOutputTokens: 2000,
-                }
+                model: QUIZ_CONFIG.MODEL,
+                messages: [
+                    { role: 'user', content: quizPrompt }
+                ],
+                temperature: 0.4,
+                max_tokens: 2000
             })
         });
 
         const data = await response.json();
 
         if (data.error) {
-            throw new Error(data.error.message);
+            throw new Error(data.error.message || 'Quiz API Error');
         }
 
-        let responseText = data.candidates[0].content.parts[0].text;
+        let responseText = data.choices[0].message.content;
 
         // Clean potential markdown code fences
         responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
