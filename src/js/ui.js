@@ -98,7 +98,39 @@ export function addMessage(sender, text) {
 
     const div = document.createElement('div');
     div.className = `message ${sender}`;
-    div.textContent = text;
+
+    // Simple markdown code block & diagram parser
+    const parts = text.split(/(```[\s\S]*?```)/g);
+    parts.forEach(part => {
+        if (part.startsWith('```')) {
+            const codeLines = part.replace(/```/g, '').trim().split('\n');
+            const language = codeLines[0].toLowerCase();
+            const actualCode = codeLines.slice(1).join('\n');
+
+            if (language === 'mermaid') {
+                const diagDiv = document.createElement('div');
+                diagDiv.className = 'mermaid';
+                diagDiv.textContent = actualCode;
+                div.appendChild(diagDiv);
+                
+                // Initialize mermaid for this specific element
+                setTimeout(() => {
+                    // @ts-ignore
+                    mermaid.init(undefined, diagDiv);
+                }, 100);
+            } else {
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.textContent = actualCode;
+                pre.appendChild(code);
+                div.appendChild(pre);
+            }
+        } else if (part.trim()) {
+            const span = document.createElement('span');
+            span.textContent = part;
+            div.appendChild(span);
+        }
+    });
     
     const indicator = document.getElementById('typing-indicator');
     if (indicator) {

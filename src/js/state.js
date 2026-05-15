@@ -29,5 +29,7 @@ export const state = {
         exchangeCount: 0,           // Total back-and-forth turns
         awaitingReflection: false,  // true → next ghost prompt asks student to explain WHY
         needsSimplification: false, // true → ghost should use analogies / slow down
+        misconceptions: [],         // List of specific identified knowledge gaps
+        lastGhostThought: null,     // Hidden internal reasoning from the AI
     }
 };

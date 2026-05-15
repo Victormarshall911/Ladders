@@ -1,6 +1,6 @@
 /**
  * API Logic — OpenRouter (OpenAI-compatible)
- * Includes automatic fallback across free models if one is rate-limited.
+ * Includes automatic fallback and advanced Socratic Thinking Protocol.
  */
 import { addMessage, setThinking, updateProgress } from './ui.js';
 import { buildRuntimeContext, getHintInstruction } from './engine.js';
@@ -11,11 +11,6 @@ const CONFIG = {
     TIMEOUT_MS: 40000,
 };
 
-/**
- * Ordered fallback chain of free models.
- * The first one that succeeds will be used.
- * Vision models are listed first so image uploads work.
- */
 const MODEL_CHAIN = [
     import.meta.env.VITE_AI_MODEL || 'nvidia/nemotron-nano-12b-v2-vl:free',
     'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
@@ -29,32 +24,67 @@ const MODEL_CHAIN = [
 function buildSystemPrompt(state) {
     const runtimeContext = buildRuntimeContext(state);
     const hintInstruction = getHintInstruction(state);
+    const misconceptions = state.student.misconceptions.length > 0 
+        ? `PAST MISCONCEPTIONS: ${state.student.misconceptions.join(', ')}` 
+        : '';
 
     return `
-You are "The Socratic Ghost" — an elite AI lecturer and reasoning mentor.
-Your mission is NOT to give students answers. Your mission is to develop their thinking.
+You are "The Socratic Ghost" — a timeless, elite AI mentor capable of mastering any academic discipline by analyzing its core structures.
+
+GOAL: Develop the student's reasoning within the context of their specific department.
+
+OUTPUT FORMAT (MANDATORY):
+You must wrap your response in these specific XML tags:
+<thought>
+1. DISCIPLINE IDENTIFICATION: Detect the department/framework (e.g., Clinical, Engineering, Legal, Humanities).
+2. TRUTH VERIFICATION: Deterministically verify any specific formulas, protocols, or facts.
+3. PEDAGOGY PLAN: Identify the core misconception and plan a Socratic nudge that uses the correct subject-specific lexicon.
+</thought>
+<analysis>List specific misconceptions or knowledge gaps found in the latest message.</analysis>
+<response>Your actual Socratic response. Use diagrams if they help visualize a concept!</response>
+
+ACADEMIC TOOLS:
+- DIAGRAMS: You can generate flowcharts, mind-maps, or technical drawings using Mermaid.js. Wrap them in \`\`\`mermaid blocks.
+- ADAPTIVE LEXICON: Automatically use the terminology appropriate for the student's department (e.g., use "clinical assessment" for nursing, "empirical evidence" for science, "structural loads" for engineering).
 
 PEDAGOGY RULES:
 1. NEVER GIVE DIRECT ANSWERS. Ask guiding questions instead.
-2. TEACH LIKE A PROFESSOR. Be patient, structured, and precise.
+2. ADAPT TO FRAMEWORK. If it's a social science, focus on perspectives; if it's a hard science, focus on mechanisms/laws.
 3. BREAK PROBLEMS DOWN. Handle one micro-step at a time.
-4. ANTI-SHORTCUT. If the student asks for the answer, acknowledge frustration but give a HINT instead.
-5. IMAGE HANDLING. If an image is provided, summarize it briefly then start the Socratic dialogue.
-
-RESPONSE FORMAT:
-- Keep it short (2-5 sentences).
-- Do NOT end every response with a question. Sometimes anchor the concept first.
-- Tone: Calm, encouraging, but intellectually demanding.
+4. IMAGE HANDLING. If an image is provided, summarize it briefly then start the Socratic dialogue.
 
 ${hintInstruction}
 ${runtimeContext}
+${misconceptions}
 `.trim();
 }
 
 /**
- * Makes a single API call to OpenRouter with the given model.
- * Returns { ok: true, text } on success, or { ok: false, retryable, error } on failure.
+ * Parses the structured XML response from the AI
  */
+function parseResponse(text, state) {
+    const thoughtMatch = text.match(/<thought>([\s\S]*?)<\/thought>/);
+    const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/);
+    const responseMatch = text.match(/<response>([\s\S]*?)<\/response>/);
+
+    const thought = thoughtMatch ? thoughtMatch[1].trim() : null;
+    const analysis = analysisMatch ? analysisMatch[1].trim() : null;
+    const response = responseMatch ? responseMatch[1].trim() : text.replace(/<[^>]*>/g, '').trim();
+
+    if (thought) {
+        state.student.lastGhostThought = thought;
+        console.log("%c Ghost Internal Reasoning ", "background: #7c3aed; color: white; font-weight: bold; border-radius: 4px; padding: 2px 6px;", thought);
+    }
+
+    if (analysis && analysis !== "None") {
+        const lines = analysis.split('\n').map(l => l.replace(/^- /, '').trim());
+        state.student.misconceptions = [...new Set([...state.student.misconceptions, ...lines])];
+        console.log("%c Detected Misconceptions ", "background: #ef4444; color: white; font-weight: bold; border-radius: 4px; padding: 2px 6px;", state.student.misconceptions);
+    }
+
+    return response;
+}
+
 async function tryModel(model, messages) {
     const response = await fetch(CONFIG.API_URL, {
         method: 'POST',
@@ -68,7 +98,7 @@ async function tryModel(model, messages) {
             model: model,
             messages: messages,
             temperature: 0.7,
-            max_tokens: 800
+            max_tokens: 1200
         })
     });
 
@@ -96,7 +126,6 @@ export async function callAI(prompt, state, isFirst = false) {
             { role: 'system', content: buildSystemPrompt(state) }
         ];
 
-        // Add history
         state.history.forEach(item => {
             messages.push({
                 role: item.role === 'ghost' ? 'assistant' : 'user',
@@ -104,10 +133,7 @@ export async function callAI(prompt, state, isFirst = false) {
             });
         });
 
-        // Add current message
         const currentContent = [{ type: 'text', text: prompt }];
-
-        // If it's an image upload
         if (isFirst && state.currentImageBase64) {
             currentContent.push({
                 type: 'image_url',
@@ -117,26 +143,21 @@ export async function callAI(prompt, state, isFirst = false) {
 
         messages.push({ role: 'user', content: currentContent });
 
-        // Try each model in the fallback chain
         let lastError = 'All models unavailable';
         for (const model of MODEL_CHAIN) {
-            console.log(`[Ladders] Trying model: ${model}`);
             const result = await tryModel(model, messages);
 
             if (result.ok) {
-                console.log(`[Ladders] Success with: ${model}`);
-                addMessage('ghost', result.text);
+                const cleanResponse = parseResponse(result.text, state);
+                addMessage('ghost', cleanResponse);
                 state.history.push({ role: 'user', text: prompt });
-                state.history.push({ role: 'ghost', text: result.text });
+                state.history.push({ role: 'ghost', text: cleanResponse });
                 updateProgress(5, state);
                 setThinking(false, "I am listening...", state);
-                return result.text;
+                return cleanResponse;
             }
 
             lastError = result.error;
-            console.warn(`[Ladders] ${model} failed: ${result.error}`);
-
-            // If it's not a retryable error (e.g. bad request), don't try other models
             if (!result.retryable) break;
         }
 
