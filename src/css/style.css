@@ -213,7 +213,11 @@ main { flex: 1; display: flex; flex-direction: column; align-items: center; over
 
 .upload-tagline { font-size: 13px; color: var(--text-2); max-width: 340px; margin: 0 auto; line-height: 1.6; }
 
-.upload-options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.upload-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
+
+@media (max-width: 600px) {
+    .upload-options { grid-template-columns: 1fr; }
+}
 
 .upload-box {
     display: flex; flex-direction: column; align-items: center; justify-content: center;

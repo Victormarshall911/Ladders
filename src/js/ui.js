@@ -20,7 +20,8 @@ export const elements = {
     quizContainer: document.getElementById('quiz-container'),
     quizContent: document.getElementById('quiz-content'),
     quizBtn: document.getElementById('quiz-btn'),
-    quizLoading: document.getElementById('quiz-loading')
+    quizLoading: document.getElementById('quiz-loading'),
+    labelText: document.getElementById('label-text')
 };
 
 export function setThinking(isThinking, text, state) {

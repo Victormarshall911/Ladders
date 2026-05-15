@@ -22,6 +22,7 @@ function init() {
     elements.userInput.addEventListener('keydown', (e) => e.key === 'Enter' && handleSend());
     elements.hunchBtn.addEventListener('click', handleHunch);
     elements.quizBtn.addEventListener('click', handleQuiz);
+    elements.labelText.addEventListener('click', handleTextStart);
 
     // ── Theme toggle ──────────────────────────────────────────────────────────
     const root = document.documentElement;
@@ -59,6 +60,12 @@ async function handleImageSelection(e) {
     }
 
     checkQuizAvailability();
+}
+
+function handleTextStart() {
+    transitionToChat();
+    elements.userInput.focus();
+    addMessage('ghost', "What topic would you like to explore today? I am ready to guide your thinking.");
 }
 
 async function handleSend() {
