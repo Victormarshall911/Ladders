@@ -1,16 +1,27 @@
 /**
- * API Logic for Gemini model
- * System prompt is assembled dynamically per-call using runtime student state.
+ * API Logic — OpenRouter (OpenAI-compatible)
+ * Includes automatic fallback across free models if one is rate-limited.
  */
 import { addMessage, setThinking, updateProgress } from './ui.js';
 import { buildRuntimeContext, getHintInstruction } from './engine.js';
 
 const CONFIG = {
     API_KEY: import.meta.env.VITE_OPENROUTER_API_KEY,
-    MODEL: import.meta.env.VITE_AI_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
     API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     TIMEOUT_MS: 40000,
 };
+
+/**
+ * Ordered fallback chain of free models.
+ * The first one that succeeds will be used.
+ * Vision models are listed first so image uploads work.
+ */
+const MODEL_CHAIN = [
+    import.meta.env.VITE_AI_MODEL || 'nvidia/nemotron-nano-12b-v2-vl:free',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    'deepseek/deepseek-v4-flash:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+];
 
 /**
  * Assembles a fully personalized system prompt for each API call.
@@ -38,6 +49,39 @@ RESPONSE FORMAT:
 ${hintInstruction}
 ${runtimeContext}
 `.trim();
+}
+
+/**
+ * Makes a single API call to OpenRouter with the given model.
+ * Returns { ok: true, text } on success, or { ok: false, retryable, error } on failure.
+ */
+async function tryModel(model, messages) {
+    const response = await fetch(CONFIG.API_URL, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${CONFIG.API_KEY}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Ladders AI',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 800
+        })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+        const code = data.error.code || response.status;
+        const retryable = code === 429 || code === 503 || code === 502;
+        return { ok: false, retryable, error: data.error.message || 'API Error' };
+    }
+
+    const text = data.choices[0].message.content;
+    return { ok: true, text };
 }
 
 export async function callAI(prompt, state, isFirst = false) {
@@ -73,37 +117,30 @@ export async function callAI(prompt, state, isFirst = false) {
 
         messages.push({ role: 'user', content: currentContent });
 
-        const response = await fetch(CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${CONFIG.API_KEY}`,
-                'HTTP-Referer': 'http://localhost:5173', // Required by OpenRouter
-                'X-Title': 'Ladders AI',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: CONFIG.MODEL,
-                messages: messages,
-                temperature: 0.7,
-                max_tokens: 800
-            })
-        });
+        // Try each model in the fallback chain
+        let lastError = 'All models unavailable';
+        for (const model of MODEL_CHAIN) {
+            console.log(`[Ladders] Trying model: ${model}`);
+            const result = await tryModel(model, messages);
 
-        const data = await response.json();
+            if (result.ok) {
+                console.log(`[Ladders] Success with: ${model}`);
+                addMessage('ghost', result.text);
+                state.history.push({ role: 'user', text: prompt });
+                state.history.push({ role: 'ghost', text: result.text });
+                updateProgress(5, state);
+                setThinking(false, "I am listening...", state);
+                return result.text;
+            }
 
-        if (data.error) {
-            throw new Error(data.error.message || 'API Error');
+            lastError = result.error;
+            console.warn(`[Ladders] ${model} failed: ${result.error}`);
+
+            // If it's not a retryable error (e.g. bad request), don't try other models
+            if (!result.retryable) break;
         }
 
-        const responseText = data.choices[0].message.content;
-
-        addMessage('ghost', responseText);
-        state.history.push({ role: 'user', text: prompt });
-        state.history.push({ role: 'ghost', text: responseText });
-
-        updateProgress(5, state);
-        setThinking(false, "I am listening...", state);
-        return responseText;
+        throw new Error(lastError);
 
     } catch (error) {
         console.error('AI Error:', error);

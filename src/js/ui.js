@@ -27,6 +27,29 @@ export function setThinking(isThinking, text, state) {
     state.isThinking = isThinking;
     elements.orb.className = `orb ${isThinking ? 'thinking' : 'idle'}`;
     elements.statusText.textContent = text;
+
+    // Handle typing indicator in chat
+    let indicator = document.getElementById('typing-indicator');
+    if (!indicator && elements.chatMessages) {
+        indicator = document.createElement('div');
+        indicator.id = 'typing-indicator';
+        indicator.className = 'typing-indicator';
+        indicator.innerHTML = '<span></span><span></span><span></span>';
+        elements.chatMessages.appendChild(indicator);
+    }
+
+    if (indicator) {
+        if (isThinking) {
+            indicator.classList.add('visible');
+            // Ensure indicator is at the very bottom
+            elements.chatMessages.appendChild(indicator);
+            setTimeout(() => {
+                indicator.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 50);
+        } else {
+            indicator.classList.remove('visible');
+        }
+    }
 }
 
 export function transitionToChat() {
@@ -76,7 +99,13 @@ export function addMessage(sender, text) {
     const div = document.createElement('div');
     div.className = `message ${sender}`;
     div.textContent = text;
-    elements.chatMessages.appendChild(div);
+    
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) {
+        elements.chatMessages.insertBefore(div, indicator);
+    } else {
+        elements.chatMessages.appendChild(div);
+    }
     
     // Smooth scroll to bottom
     setTimeout(() => {

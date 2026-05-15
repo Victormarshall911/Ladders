@@ -1,16 +1,22 @@
 /**
  * Quiz Module — Generation, Rendering, and Grading
- * Uses OpenRouter (OpenAI-compatible) API
+ * Uses OpenRouter (OpenAI-compatible) API with model fallback
  */
 import { elements, setThinking, transitionToQuiz, transitionBackToChat } from './ui.js';
 import { updateProgress } from './ui.js';
 
 const QUIZ_CONFIG = {
     API_KEY: import.meta.env.VITE_OPENROUTER_API_KEY,
-    MODEL: import.meta.env.VITE_AI_MODEL || 'meta-llama/llama-3.2-11b-vision-instruct:free',
     API_URL: 'https://openrouter.ai/api/v1/chat/completions',
     NUM_QUESTIONS: 5
 };
+
+/** Same fallback chain as api.js — text-only models work fine for quiz generation */
+const QUIZ_MODEL_CHAIN = [
+    import.meta.env.VITE_AI_MODEL || 'nvidia/nemotron-nano-12b-v2-vl:free',
+    'deepseek/deepseek-v4-flash:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+];
 
 /**
  * Generate quiz questions from conversation history via OpenRouter
@@ -52,31 +58,43 @@ RULES:
 ]`;
 
     try {
-        const response = await fetch(QUIZ_CONFIG.API_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${QUIZ_CONFIG.API_KEY}`,
-                'HTTP-Referer': 'http://localhost:5173',
-                'X-Title': 'Ladders AI',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: QUIZ_CONFIG.MODEL,
-                messages: [
-                    { role: 'user', content: quizPrompt }
-                ],
-                temperature: 0.4,
-                max_tokens: 2000
-            })
-        });
+        let responseText = null;
 
-        const data = await response.json();
+        for (const model of QUIZ_MODEL_CHAIN) {
+            console.log(`[Quiz] Trying model: ${model}`);
+            const response = await fetch(QUIZ_CONFIG.API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${QUIZ_CONFIG.API_KEY}`,
+                    'HTTP-Referer': window.location.origin,
+                    'X-Title': 'Ladders AI',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: [
+                        { role: 'user', content: quizPrompt }
+                    ],
+                    temperature: 0.4,
+                    max_tokens: 2000
+                })
+            });
 
-        if (data.error) {
-            throw new Error(data.error.message || 'Quiz API Error');
+            const data = await response.json();
+
+            if (data.error) {
+                const code = data.error.code || response.status;
+                console.warn(`[Quiz] ${model} failed: ${data.error.message}`);
+                if (code !== 429 && code !== 503 && code !== 502) break;
+                continue;
+            }
+
+            responseText = data.choices[0].message.content;
+            console.log(`[Quiz] Success with: ${model}`);
+            break;
         }
 
-        let responseText = data.choices[0].message.content;
+        if (!responseText) throw new Error('All models unavailable for quiz generation');
 
         // Clean potential markdown code fences
         responseText = responseText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
