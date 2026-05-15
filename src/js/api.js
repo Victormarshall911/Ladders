@@ -1,6 +1,6 @@
 /**
- * API Logic — OpenRouter (OpenAI-compatible)
- * Target: Free Vision Models (Llama 3.2 11B Vision)
+ * API Logic for Gemini model
+ * System prompt is assembled dynamically per-call using runtime student state.
  */
 import { addMessage, setThinking, updateProgress } from './ui.js';
 import { buildRuntimeContext, getHintInstruction } from './engine.js';
@@ -62,7 +62,7 @@ export async function callAI(prompt, state, isFirst = false) {
 
         // Add current message
         const currentContent = [{ type: 'text', text: prompt }];
-        
+
         // If it's an image upload
         if (isFirst && state.currentImageBase64) {
             currentContent.push({
