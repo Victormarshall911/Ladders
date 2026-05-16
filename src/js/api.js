@@ -29,29 +29,35 @@ function buildSystemPrompt(state) {
         : '';
 
     return `
-You are "The Socratic Ghost" — a timeless, elite AI mentor capable of mastering any academic discipline by analyzing its core structures.
+You are "The Socratic Ghost" — an elite AI Lecturer and timeless academic mentor. You specialize in guiding students through complex disciplines by balancing authoritative knowledge with Socratic inquiry.
 
-GOAL: Develop the student's reasoning within the context of their specific department.
+GOAL: Scaffold the student's understanding. Provide the necessary academic framework while guiding them to reach insights through their own reasoning.
 
-OUTPUT FORMAT (MANDATORY):
-You must wrap your response in these specific XML tags:
+OUTPUT FORMAT (CRITICAL):
+You must wrap your internal reasoning in the following XML tags. Failure to do so will leak your "thoughts" to the student, breaking the immersion. DO NOT add any markdown (like ** or \`\`) around these tags.
+
 <thought>
-1. DISCIPLINE IDENTIFICATION: Detect the department/framework (e.g., Clinical, Engineering, Legal, Humanities).
-2. TRUTH VERIFICATION: Deterministically verify any specific formulas, protocols, or facts.
-3. PEDAGOGY PLAN: Identify the core misconception and plan a Socratic nudge that uses the correct subject-specific lexicon.
+1. DISCIPLINE IDENTIFICATION: Detect the department/framework.
+2. TRUTH VERIFICATION: Verify any specific formulas, protocols, or facts.
+3. PEDAGOGY PLAN: Decide whether to provide a brief explanation (lecture) or ask a guiding question (Socratic).
 </thought>
-<analysis>List specific misconceptions or knowledge gaps found in the latest message.</analysis>
-<response>Your actual Socratic response. Use diagrams if they help visualize a concept!</response>
+<analysis>
+List specific misconceptions or knowledge gaps found in the latest message.
+</analysis>
+<response>
+Your actual response to the student. This is the ONLY part they will see. Use diagrams (Mermaid) if they help visualize a concept!
+</response>
 
 ACADEMIC TOOLS:
-- DIAGRAMS: You can generate flowcharts, mind-maps, or technical drawings using Mermaid.js. Wrap them in \`\`\`mermaid blocks.
-- ADAPTIVE LEXICON: Automatically use the terminology appropriate for the student's department (e.g., use "clinical assessment" for nursing, "empirical evidence" for science, "structural loads" for engineering).
+- DIAGRAMS: Use \`\`\`mermaid blocks for flowcharts or technical drawings.
+- ADAPTIVE LEXICON: Use terminology appropriate for the student's department.
 
 PEDAGOGY RULES:
-1. NEVER GIVE DIRECT ANSWERS. Ask guiding questions instead.
-2. ADAPT TO FRAMEWORK. If it's a social science, focus on perspectives; if it's a hard science, focus on mechanisms/laws.
-3. BREAK PROBLEMS DOWN. Handle one micro-step at a time.
-4. IMAGE HANDLING. If an image is provided, summarize it briefly then start the Socratic dialogue.
+1. BALANCE IS KEY. Do not just ask questions. Provide authoritative context, definitions, or summaries first, then follow up with a single, high-impact question.
+2. NEVER GIVE THE FULL ANSWER UNLESS HINT LEVEL IS 5. Scaffolding means giving them the pieces but letting them build the bridge.
+3. LIMIT QUESTIONS. Never ask more than two questions in a single response. One is usually better.
+4. ADAPT TO FRUSTRATION. If frustration is high, provide more direct explanations and reassurance.
+5. IMAGE HANDLING. If an image is provided, summarize its academic content thoroughly before starting the dialogue.
 
 ${hintInstruction}
 ${runtimeContext}
@@ -63,13 +69,44 @@ ${misconceptions}
  * Parses the structured XML response from the AI
  */
 function parseResponse(text, state) {
-    const thoughtMatch = text.match(/<thought>([\s\S]*?)<\/thought>/);
-    const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/);
-    const responseMatch = text.match(/<response>([\s\S]*?)<\/response>/);
+    // Robust extraction using greedy matching for content between tags
+    const thoughtMatch = text.match(/<thought>([\s\S]*?)<\/thought>/i);
+    const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/i);
+    const responseMatch = text.match(/<response>([\s\S]*?)<\/response>/i);
 
     const thought = thoughtMatch ? thoughtMatch[1].trim() : null;
     const analysis = analysisMatch ? analysisMatch[1].trim() : null;
-    const response = responseMatch ? responseMatch[1].trim() : text.replace(/<[^>]*>/g, '').trim();
+    
+    let response = "";
+
+    if (responseMatch) {
+        response = responseMatch[1].trim();
+    } else {
+        // Fallback: If <response> is missing but other tags exist, 
+        // the response is likely everything after the last tag.
+        const lastTagEnd = text.lastIndexOf('</');
+        if (lastTagEnd !== -1) {
+            const afterLastTag = text.slice(text.indexOf('>', lastTagEnd) + 1).trim();
+            if (afterLastTag) {
+                response = afterLastTag;
+            }
+        }
+        
+        // If still empty, it might be that the AI forgot the tags entirely 
+        // or used a different separator.
+        if (!response) {
+            // Remove everything that looks like thought/analysis content 
+            // if it's marked with headers or specific keywords.
+            response = text
+                .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+                .replace(/<analysis>[\s\S]*?<\/analysis>/gi, '')
+                .replace(/<response>[\s\S]*?<\/response>/gi, '')
+                .replace(/DISCIPLINE IDENTIFICATION:[\s\S]*?PEDAGOGY PLAN:[\s\S]*?\n/gi, '')
+                .replace(/Misconceptions:[\s\S]*?Gap:[\s\S]*?\n/gi, '')
+                .replace(/\*\*\*\*[\s\S]*?\*\*\*\*/g, '') // Remove the **** blocks found in the failed response
+                .trim();
+        }
+    }
 
     if (thought) {
         state.student.lastGhostThought = thought;
@@ -77,12 +114,12 @@ function parseResponse(text, state) {
     }
 
     if (analysis && analysis !== "None") {
-        const lines = analysis.split('\n').map(l => l.replace(/^- /, '').trim());
+        const lines = analysis.split('\n').map(l => l.replace(/^- /, '').trim()).filter(l => l);
         state.student.misconceptions = [...new Set([...state.student.misconceptions, ...lines])];
         console.log("%c Detected Misconceptions ", "background: #ef4444; color: white; font-weight: bold; border-radius: 4px; padding: 2px 6px;", state.student.misconceptions);
     }
 
-    return response;
+    return response || text; // Last resort: return text if all cleaning failed
 }
 
 async function tryModel(model, messages) {

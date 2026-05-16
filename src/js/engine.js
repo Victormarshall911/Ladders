@@ -52,29 +52,28 @@ const ADVANCEMENT_SIGNALS = [
 // ─── Hint Level Descriptions ─────────────────────────────────────────────────
 
 const HINT_LEVEL_INSTRUCTIONS = [
-    // Level 0 — Pure Socratic (default)
-    `Use only guiding questions. Do not reveal any part of the answer or method. 
-Ask the student what they already know, what they notice, or what they expect.`,
+    // Level 0 — Guided Inquiry (default)
+    `Establish a conceptual framework first. Provide a brief, authoritative overview of the current topic or a definition of a key term before asking a SINGLE, focused guiding question. Avoid asking multiple questions at once.`,
 
-    // Level 1 — Conceptual nudge
-    `Ask a conceptual question that points toward the relevant principle.
-You may name the concept involved (e.g. "Think about conservation of energy") but do not explain it.`,
+    // Level 1 — Conceptual Analogy
+    `Provide a helpful analogy or a simplified explanation of the core principle. 
+    Then, ask a question that prompts the student to connect that analogy back to the problem at hand.`,
 
-    // Level 2 — Principle reveal
-    `Reveal the underlying principle or theorem that applies to this problem.
-State it clearly but do not show HOW to apply it. Ask the student to try applying it themselves.`,
+    // Level 2 — Principle Explanation
+    `State the underlying principle or theorem clearly and explain its significance in this specific context. 
+    Ask the student to describe how they think this principle might change their approach.`,
 
-    // Level 3 — Partial setup
-    `Show the first 1–2 steps of the approach or setup. 
-Frame it as a scaffold: "Here is how we might begin..." then stop and ask the student to continue.`,
+    // Level 3 — Scaffolding / Partial Setup
+    `Show the first 1–2 steps of the setup or derivation, explaining the logic behind each move. 
+    Stop and ask the student to continue the next logical step themselves.`,
 
-    // Level 4 — Near-complete reasoning
-    `Walk through the reasoning up to the final step.
-Show almost everything but leave the last logical conclusion for the student to state.`,
+    // Level 4 — Detailed Walkthrough
+    `Walk through the entire reasoning process, explaining the "why" at every turn. 
+    Leave only the final calculation or the very last logical conclusion for the student to state.`,
 
-    // Level 5 — Full reveal with explanation
-    `Provide the complete solution with a full explanation of every step.
-After revealing it, ask the student to explain it back to you in their own words.`
+    // Level 5 — Full Mastery Reveal
+    `Provide the complete solution with a comprehensive explanation of the entire process. 
+    Afterward, ask the student to summarize the most important takeaway in their own words.`
 ];
 
 // ─── Public API ──────────────────────────────────────────────────────────────

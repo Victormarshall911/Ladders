@@ -24,6 +24,13 @@ function init() {
     elements.quizBtn.addEventListener('click', handleQuiz);
     elements.labelText.addEventListener('click', handleTextStart);
 
+    // ── Input validation ──────────────────────────────────────────────────────
+    elements.userInput.addEventListener('input', () => {
+        const text = elements.userInput.value.trim();
+        elements.sendBtn.disabled = !text || state.isThinking;
+    });
+    // ──────────────────────────────────────────────────────────────────────────
+
     // ── Theme toggle ──────────────────────────────────────────────────────────
     const root = document.documentElement;
 
@@ -73,6 +80,7 @@ async function handleSend() {
     if (!text || state.isThinking) return;
 
     elements.userInput.value = '';
+    elements.sendBtn.disabled = true;
     addMessage('user', text);
 
     // ── Pedagogy Engine: classify and update student state BEFORE calling API ──

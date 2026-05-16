@@ -42,6 +42,7 @@ export function setThinking(isThinking, text, state) {
     if (indicator) {
         if (isThinking) {
             indicator.classList.add('visible');
+            elements.sendBtn.disabled = true;
             // Ensure indicator is at the very bottom
             elements.chatMessages.appendChild(indicator);
             setTimeout(() => {
@@ -49,6 +50,9 @@ export function setThinking(isThinking, text, state) {
             }, 50);
         } else {
             indicator.classList.remove('visible');
+            // Re-validate input to see if button should be enabled
+            const text = elements.userInput.value.trim();
+            elements.sendBtn.disabled = !text;
         }
     }
 }
@@ -73,6 +77,10 @@ export function transitionToChat() {
     if (orb) {
         orb.style.width = '36px';
         orb.style.height = '36px';
+    }
+
+    if (elements.hunchBtn) {
+        elements.hunchBtn.style.display = 'inline-flex';
     }
 }
 
